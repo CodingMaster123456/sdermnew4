@@ -13,21 +13,37 @@ from torchvision.models import convnext_tiny
 
 # ---- Download model from Google Drive ----
 # ---- Download model from Google Drive (Fixed) ----
+# ---- Download model from Hugging Face Hub ----
 def download_model():
     if not os.path.exists("best_model.pth"):
-        print("Downloading model from Google Drive...")
+        print("Downloading model from Hugging Face...")
         
-        # Direct download link - replace YOUR_FILE_ID with your actual file ID
-        file_id = "1sqrqDpzJfGfDWdZawQUKZsQkEeS-plBv"
-        url = f"https://drive.usercontent.google.com/download?id={file_id}&export=download"
+        # Replace with your Hugging Face model URL
+        # Format: https://huggingface.co/YOUR_USERNAME/YOUR_MODEL_NAME/resolve/main/best_model.pth
+        url = "https://huggingface.co/legend28496/SDERMAI/resolve/main/best_model.pth"
         
         response = requests.get(url, stream=True)
         if response.status_code == 200:
+            total_size = int(response.headers.get('content-length', 0))
             with open("best_model.pth", "wb") as f:
+                downloaded = 0
                 for chunk in response.iter_content(chunk_size=32768):
                     if chunk:
                         f.write(chunk)
-            print("Model downloaded successfully!")
+                        downloaded += len(chunk)
+                        if total_size > 0:
+                            percent = (downloaded / total_size) * 100
+                            print(f"\rDownloading: {percent:.1f}%", end="", flush=True)
+            print("\nModel downloaded successfully!")
+            
+            # Verify the file is valid
+            try:
+                test_load = torch.load("best_model.pth", map_location="cpu", weights_only=False)
+                print("Model file verified successfully!")
+            except Exception as e:
+                print(f"Downloaded file is corrupted: {e}")
+                os.remove("best_model.pth")
+                raise Exception("Failed to download valid model file")
         else:
             raise Exception(f"Failed to download model: {response.status_code}")
     else:
