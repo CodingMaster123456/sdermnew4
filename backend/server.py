@@ -1,6 +1,7 @@
 # server.py
 import io, os, json
 import requests
+import numpy as np  # FIXED: Added numpy import at top
 from typing import Optional
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,17 +12,12 @@ import torch.nn.functional as F
 from torchvision import transforms
 from torchvision.models import convnext_tiny
 
-# ---- Download model from Google Drive ----
-# ---- Download model from Google Drive (Fixed) ----
 # ---- Download model from Hugging Face Hub ----
 def download_model():
     if not os.path.exists("best_model.pth"):
         print("Downloading model from Hugging Face...")
         
-        # Replace with your Hugging Face model URL
-        # Format: https://huggingface.co/YOUR_USERNAME/YOUR_MODEL_NAME/resolve/main/best_model.pth
         url = "https://huggingface.co/legend28496/SDERMAI/resolve/main/best_model.pth"
-        
         response = requests.get(url, stream=True)
         if response.status_code == 200:
             total_size = int(response.headers.get('content-length', 0))
@@ -57,7 +53,7 @@ CKPT_PATH = os.getenv("CKPT_PATH", "best_model.pth") # your saved state_dict
 LABELS_PATH = os.getenv("LABELS_PATH", "labels.json") # optional
 
 # ---- FastAPI & CORS (open for dev) ----
-app = FastAPI()
+app = FastAPI(title="Skin Condition Scanner API", description="AI-powered skin condition detection")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], allow_credentials=True,
@@ -125,6 +121,17 @@ preprocess = transforms.Compose([
                         [0.229, 0.224, 0.225]),
 ])
 
+# ---- API Endpoints ----
+@app.get("/")
+async def root():
+    return {
+        "message": "Skin Condition Scanner API is running",
+        "status": "healthy",
+        "model": "ConvNeXt-Tiny",
+        "purpose": "Skin condition classification",
+        "disclaimer": "This is not medical advice. Always consult a dermatologist."
+    }
+
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     try:
@@ -138,16 +145,34 @@ async def predict(file: UploadFile = File(...)):
         logits = m(x)
         probs = F.softmax(logits, dim=1).cpu().numpy().flatten()
     
-    import numpy as np
+    # FIXED: Removed import numpy from here (now at top)
     k = min(3, probs.shape[0])
     top_idx = np.argsort(-probs)[:k].tolist()
     top_conf = [float(probs[i]) for i in top_idx]
     top_labels = [IDX2LABEL[i] if IDX2LABEL and i in IDX2LABEL else str(i) for i in top_idx]
     
-    return {
+    # Add confidence warning for skin scanning
+    warning = None
+    if top_conf[0] < 0.6:
+        warning = "Low confidence prediction. Please consult a dermatologist for proper diagnosis."
+    
+    result = {
         "top_indices": top_idx,
         "top_labels": top_labels,
         "top_confidences": top_conf,
         "best": {"index": top_idx[0], "label": top_labels[0], "confidence": top_conf[0]},
-        "meta": {"arch": "convnext_tiny", "num_classes": num_classes}
+        "meta": {"arch": "convnext_tiny", "num_classes": num_classes},
+        "disclaimer": "This is not medical advice. Always consult a healthcare professional."
     }
+    
+    if warning:
+        result["warning"] = warning
+    
+    return result
+
+# FIXED: Added port configuration for Render
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    print(f"Starting Skin Scanner API on port {port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)
