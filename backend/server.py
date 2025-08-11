@@ -12,14 +12,21 @@ from torchvision import transforms
 from torchvision.models import convnext_tiny
 
 # ---- Download model from Google Drive ----
+# ---- Download model from Google Drive (Fixed) ----
 def download_model():
     if not os.path.exists("best_model.pth"):
         print("Downloading model from Google Drive...")
-        url = "https://drive.google.com/uc?id=1sqrqDpzJfGfDWdZawQUKZsQkEeS-plBv"
-        response = requests.get(url)
+        
+        # Direct download link - replace YOUR_FILE_ID with your actual file ID
+        file_id = "1sqrqDpzJfGfDWdZawQUKZsQkEeS-plBv"
+        url = f"https://drive.usercontent.google.com/download?id={file_id}&export=download"
+        
+        response = requests.get(url, stream=True)
         if response.status_code == 200:
             with open("best_model.pth", "wb") as f:
-                f.write(response.content)
+                for chunk in response.iter_content(chunk_size=32768):
+                    if chunk:
+                        f.write(chunk)
             print("Model downloaded successfully!")
         else:
             raise Exception(f"Failed to download model: {response.status_code}")
