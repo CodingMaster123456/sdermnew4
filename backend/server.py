@@ -55,7 +55,7 @@ if os.path.exists(LABELS_PATH):
         IDX2LABEL = None
 
 # ---- Load state_dict & infer num_classes from final linear weight ----
-state_dict = torch.load(CKPT_PATH, map_location="cpu")
+state_dict = torch.load(CKPT_PATH, map_location="cpu", weights_only=False)
 # final layer in your Sequential is index 6, so key: 'classifier.2.6.weight'
 final_key = None
 for k in state_dict.keys():
