@@ -294,7 +294,7 @@
     const aiText = document.getElementById('ai-result-text');
 
     // Point to your FastAPI server if deployed elsewhere
-    const API_URL = 'https://sdermnew4.onrender.com';
+    const API_URL = 'http://20.120.113.227:80/predict';
 
     runAiBtn.addEventListener('click', async () => {
       if (!imageUpload.files.length) return alert('Please upload an image first');
