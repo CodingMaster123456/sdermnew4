@@ -2,7 +2,7 @@
   "headers": [
     {
       "source": "(.*)",
-      "dest": "*",
+      "dest": "http://20.120.113.227:80/predict",
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
